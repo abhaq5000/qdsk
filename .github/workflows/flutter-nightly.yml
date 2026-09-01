@@ -1,9 +1,8 @@
 name: Flutter Nightly Build
 
 on:
-  schedule:
-    # schedule build every night
-    - cron: "0 0 * * *"
+  # qdsk: nightly cron disabled on this fork to avoid burning Actions minutes;
+  # trigger manually from the Actions tab if a full multi-platform build is needed.
   workflow_dispatch:
 
 jobs:
