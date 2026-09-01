@@ -27,6 +27,13 @@ env:
   VCPKG_COMMIT_ID: "9e593bb18ea69cc5095e012465dcd675a822ed0d"
   VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
+permissions:
+  contents: write
+
+concurrency:
+  group: qdsk-windows-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   generate-bridge:
     runs-on: ubuntu-22.04
@@ -170,9 +177,21 @@ jobs:
         run: |
           python3 .\build.py --portable --flutter --skip-portable-pack --hwcodec --vram
           mv ./flutter/build/windows/x64/runner/Release ./qdsk
+          if (Test-Path ./qdsk/rustdesk.exe) { Copy-Item ./qdsk/rustdesk.exe ./qdsk/qdsk.exe }
+          Compress-Archive -Path ./qdsk/* -DestinationPath ./qdsk-windows-x64.zip -Force
 
-      - name: Upload qdsk (unsigned Windows x64)
+      - name: Upload qdsk (unsigned Windows x64) as workflow artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: qdsk-windows-x86_64
           path: qdsk
+
+      - name: Publish to a public Release (plain download URL)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete qdsk-windows -y --cleanup-tag 2>/dev/null || true
+          gh release create qdsk-windows ./qdsk-windows-x64.zip \
+            --title "qdsk Windows x64 (unsigned)" \
+            --notes "Automated qdsk Windows build (rebranded RustDesk, per-user id). Contains both rustdesk.exe and a qdsk.exe copy."
